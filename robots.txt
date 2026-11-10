@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://jonotarium.vercel.app/sitemap.xml
