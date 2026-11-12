@@ -2172,20 +2172,49 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
 
   // Add Edit Profile button in header (once)
   function addEditBtn(){
-    if(document.getElementById('jtEditProfileBtn')) return;
-    // Find header - first header element or top bar with Login/Profile
-    var header=document.querySelector('header') || document.body.firstElementChild;
-    if(!header) return;
-    // Only add if user is logged in (there is a Logout / profile area) - add anyway, modal will ask to login
-    var btn=document.createElement('button');
-    btn.id='jtEditProfileBtn'; btn.textContent='✏️ Edit Profile';
-    btn.style.cssText='margin-left:8px;padding:6px 12px;border-radius:20px;background:#FFD700;color:#000;font-weight:700;border:1px solid #000;font-size:13px;cursor:pointer';
-    btn.onclick=openEditModal;
-    // Append to header if it has space, else fixed small button at top-right below header
-    try{ header.appendChild(btn); }catch(e){ document.body.appendChild(btn); }
+    // RULE: Not logged in -> NO Guest bar at all, only Login button. Logged in -> Name+Photo+Pen BELOW yellow banner text.
+    var user=getUser()||{}; var prof=getProfile()||{};
+    var isLogged = !!(user && (user.uid || user.email || user.name));
+    var existing=document.getElementById('jtTopProfile'); if(existing) existing.remove();
+    if(!isLogged){ return; }
+    // Find yellow banner that contains "Your Story Matters"
+    var banner=null;
+    document.querySelectorAll('div,section').forEach(function(el){
+      if(banner) return;
+      var t=el.innerText||'';
+      if(t.includes('Your Story Matters') && t.includes('Global Voice of Humanity') && el.children.length<6){
+        banner=el;
+      }
+    });
+    if(!banner) banner=document.querySelector('header') || document.body.firstElementChild;
+    var bar=document.createElement('div'); bar.id='jtTopProfile';
+    bar.style.cssText='display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 12px;background:#fff;border:1px solid #000;border-radius:999px;margin:14px auto 6px auto;max-width:92%;box-shadow:0 2px 6px rgba(0,0,0,0.15)';
+    bar.innerHTML='<img id="jtTopAvatar" src="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid #000;display:none"><div id="jtTopAvatarLetter" style="width:42px;height:42px;border-radius:50%;background:#000;color:#FFD700;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px">A</div><span id="jtTopName" style="font-weight:900;font-size:17px;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">Abu sayed</span><button id="jtTopPen" style="background:#FFD700;border:1.5px solid #000;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px" title="Edit Profile">✏️</button>';
+    // Put inside banner, after its text / before Post Now button if possible
+    try{
+      var postBtn=null;
+      banner.querySelectorAll('button').forEach(function(b){ if((b.textContent||'').includes('Post Now')) postBtn=b; });
+      if(postBtn && postBtn.parentNode===banner){ banner.insertBefore(bar, postBtn); }
+      else if(postBtn){ banner.appendChild(bar); }
+      else { banner.appendChild(bar); }
+    }catch(e){ banner.appendChild(bar); }
+    var pen=bar.querySelector('#jtTopPen'); pen.onclick=function(e){ e.preventDefault(); e.stopPropagation(); openEditModal(); };
+    updateTopProfile();
+    return;
   }
-  setInterval(addEditBtn, 1500);
-
+  function updateTopProfile(){
+    var prof=getProfile(); var user=getUser()||{};
+    // If not logged in, remove bar completely - NO Guest
+    if(!(user && (user.uid || user.email || user.name))){
+      var b=document.getElementById('jtTopProfile'); if(b) b.remove(); return;
+    }
+    var name = prof.displayName || user.name || '';
+    var photo = prof.photo || user.photo || '';
+    var nameEl=document.getElementById('jtTopName'); if(nameEl) nameEl.textContent=name;
+    var img=document.getElementById('jtTopAvatar'); var letter=document.getElementById('jtTopAvatarLetter');
+    if(photo && img && letter){ img.src=photo; img.style.display='block'; letter.style.display='none'; }
+    else if(img && letter){ img.style.display='none'; letter.style.display='flex'; letter.textContent=(name||'A').charAt(0).toUpperCase(); }
+  }
   function openEditModal(){
     if(document.getElementById('jtEditModal')){ document.getElementById('jtEditModal').style.display='flex'; return; }
     var prof=getProfile(); var user=getUser()||{};
@@ -2195,9 +2224,9 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:12px;z-index:9999';
     overlay.innerHTML = '<div style="background:#fff;width:100%;max-width:420px;border-radius:16px;padding:20px;max-height:92vh;overflow-y:auto">'
       + '<h3 style="font-weight:800;font-size:18px;margin-bottom:6px">✏️ Edit Jonotarium Profile</h3>'
-      + '<p style="font-size:13px;color:#555;margin-bottom:12px">Google নাম <b>'+(user.name||'—')+'</b> থাকবে। Jonotarium এ আলাদা নাম রাখতে পারবেন। যেমন Google এ <b>মালেক</b>, Jonotarium এ <b>মানিক</b>।</p>'
+      + '<p style="font-size:12px;color:#888;margin-bottom:12px">Google নাম: '+(user.name||'—')+'</p>'
       + '<label style="font-size:13px;font-weight:700">Jonotarium Name</label><input id="jtEditName" type="text" placeholder="যেমন: মানিক" value="" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:10px;margin:6px 0 12px">'
-      + '<label style="font-size:13px;font-weight:700">Profile Photo — নতুন ছবি দিলে আগেরটা চলে যাবে, নতুনটাই থাকবে</label>'
+      + '<label style="font-size:13px;font-weight:700">Profile Photo</label>'
       + '<div style="display:flex;gap:10px;align-items:center;margin:8px 0"><img id="jtEditPreview" src="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#FFD700;display:none"><input id="jtEditPhoto" type="file" accept="image/*" style="flex:1"></div>'
       + '<button id="jtEditRemovePhoto" style="font-size:12px;color:#c00;background:none;border:none;cursor:pointer">🗑️ ছবি মুছে ফেলুন</button>'
       + '<div style="display:flex;gap:10px;margin-top:16px"><button id="jtEditSave" style="flex:1;background:#FFD700;padding:10px;border-radius:20px;font-weight:800;border:1px solid #000">Save</button><button id="jtEditCancel" style="flex:1;background:#eee;padding:10px;border-radius:20px;font-weight:700">Cancel</button></div>'
@@ -2210,14 +2239,6 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
     try{
       var hist = (getProfile().photoHistory||[]);
       var listEl = overlay.querySelector('#jtHistoryList');
-      if(!listEl){
-        // UI was not in HTML string, create it now
-        var histBox=document.createElement('div'); histBox.innerHTML='<b style="font-size:13px">📁 আগের ছবিগুলো (জমা আছে):</b><div id="jtHistoryList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"></div><p style="font-size:11px;color:#666">আগের ছবিতে চাপ দিলে ওইটা আবার প্রোফাইল ছবি হয়ে যাবে।</p>';
-        var saveBtn=overlay.querySelector('#jtEditSave');
-        if(saveBtn && saveBtn.parentElement) saveBtn.parentElement.parentElement.insertBefore(histBox, saveBtn.parentElement);
-        else overlay.appendChild(histBox);
-        listEl = overlay.querySelector('#jtHistoryList');
-      }
       if(listEl){
         if(hist.length===0){ listEl.innerHTML='<span style="font-size:12px;color:#888">এখনো আগের ছবি জমা নেই।</span>'; }
         else{
@@ -2264,6 +2285,83 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
     };
   }
 })();
+</script>
+
+<script>
+(function(){
+  function getUser2(){ try{ return JSON.parse(localStorage.getItem('jt_user')||localStorage.getItem('jonotarium_user')||'null'); }catch(e){ return null; } }
+  // If user is logged in but Login modal appears after clicking Post, close Login and open our Post composer
+  function openPostComposer(){
+    if(document.getElementById('jtPostComposer')){ document.getElementById('jtPostComposer').style.display='flex'; return; }
+    var u=getUser2()||{}; var prof={}; try{ prof=JSON.parse(localStorage.getItem('jt_profile')||'{}'); }catch(e){}
+    var name=prof.displayName||u.name||'User';
+    var overlay=document.createElement('div'); overlay.id='jtPostComposer';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:12px;z-index:10000';
+    overlay.innerHTML='<div style="background:#fff;width:100%;max-width:520px;border-radius:16px;padding:18px;max-height:92vh;overflow-y:auto">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:50%;background:#FFD700;display:flex;align-items:center;justify-content:center;font-weight:800">'+(name.charAt(0)||'U')+'</div><b>'+name+'</b><span style="font-size:12px;color:#888;margin-left:6px">• Posting as '+name+'</span></div>'
+      +'<textarea id="jtPostText" placeholder="আপনার গল্প লিখুন..." style="width:100%;min-height:120px;padding:10px;border:1px solid #ccc;border-radius:10px"></textarea>'
+      +'<input id="jtPostLink" placeholder="YouTube / Facebook video link (optional)" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:10px;margin-top:8px">'
+      +'<div style="display:flex;gap:8px;margin-top:10px"><label style="flex:1;text-align:center;padding:8px;border:1px dashed #999;border-radius:10px;cursor:pointer">📷 Photo <input id="jtPostPhoto" type="file" accept="image/*" style="display:none"></label><label style="flex:1;text-align:center;padding:8px;border:1px dashed #999;border-radius:10px;cursor:pointer">📹 Video <input id="jtPostVideo" type="file" accept="video/*" style="display:none"></label></div><div id="jtPostMediaMsg" style="font-size:12px;color:green;margin-top:6px"></div>'
+      +'<div style="display:flex;gap:10px;margin-top:14px"><button id="jtPostPublish" style="flex:1;background:#FFD700;padding:11px;border-radius:20px;font-weight:800;border:1px solid #000">Publish</button><button id="jtPostCancel" style="flex:1;background:#eee;padding:11px;border-radius:20px;font-weight:700">Cancel</button></div><p id="jtPostMsg" style="font-size:12px;color:green;margin-top:8px"></p></div>';
+    document.body.appendChild(overlay);
+    var media={photo:'', video:''};
+    overlay.querySelector('#jtPostPhoto').onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ media.photo=r.result; overlay.querySelector('#jtPostMediaMsg').textContent='Photo selected.'; }; r.readAsDataURL(f); };
+    overlay.querySelector('#jtPostVideo').onchange=function(e){ var f=e.target.files[0]; if(!f) return; media.video=URL.createObjectURL(f); overlay.querySelector('#jtPostMediaMsg').textContent='Video selected: '+f.name; };
+    overlay.querySelector('#jtPostCancel').onclick=function(){ overlay.style.display='none'; };
+    overlay.onclick=function(e){ if(e.target===overlay) overlay.style.display='none'; };
+    overlay.querySelector('#jtPostPublish').onclick=function(){
+      var text=overlay.querySelector('#jtPostText').value.trim();
+      var link=overlay.querySelector('#jtPostLink').value.trim();
+      if(!text && !link && !media.photo && !media.video){ overlay.querySelector('#jtPostMsg').textContent='লিখুন বা ছবি/ভিডিও দিন।'; return; }
+      var posts=[]; try{ posts=JSON.parse(localStorage.getItem('jonotarium_posts')||'[]'); }catch(e){ posts=[]; }
+      var post={id:Date.now().toString(), authorId:u.uid||'local', authorName:name, authorPhoto:prof.photo||u.photo||'', text:text, link:link, photo:media.photo, video:media.video, createdAt:new Date().toISOString(), likes:0};
+      posts.unshift(post);
+      try{ localStorage.setItem('jonotarium_posts', JSON.stringify(posts)); }catch(e){}
+      // Firestore best effort
+      try{ if(window.firebase && firebase.firestore){ firebase.firestore().collection('posts').add(post); } }catch(e){}
+      overlay.querySelector('#jtPostMsg').textContent='Published! পোস্ট চলে গেছে।';
+      setTimeout(function(){ overlay.style.display='none'; location.reload(); }, 700);
+    };
+  }
+  // Intercept Post clicks: if logged in, open composer, never Login again
+  document.addEventListener('click', function(ev){
+    var btn=ev.target.closest ? ev.target.closest('button') : null;
+    if(!btn) return;
+    var txt=(btn.textContent||'').trim();
+    if(txt.includes('Post') || txt==='Post Now' || txt.includes('+ Post')){
+      var u=getUser2();
+      if(u){
+        ev.preventDefault(); ev.stopPropagation();
+        // Close any Login modal that is open
+        document.querySelectorAll('div.fixed.inset-0').forEach(function(m){
+          var t=(m.innerText||'').toLowerCase();
+          if(t.includes('login to jonotarium') || t.includes('login with email')){ m.style.display='none'; }
+        });
+        openPostComposer();
+      }
+    }
+  }, true);
+  // Also: if Login modal appears while already logged in, auto-close it after 800ms (fixes Post -> Login loop)
+  setInterval(function(){
+    var u=getUser2(); if(!u) return;
+    document.querySelectorAll('div.fixed.inset-0').forEach(function(m){
+      var t=(m.innerText||'').toLowerCase();
+      // Only auto-close if it is Login modal AND user just clicked Post (flag)
+      if((t.includes('login to jonotarium') || t.includes('login with email')) && sessionStorage.getItem('jtClickedPost')==='1'){
+        m.style.display='none'; sessionStorage.removeItem('jtClickedPost'); openPostComposer();
+      }
+    });
+  }, 500);
+  // Mark Post clicks
+  document.addEventListener('click', function(ev){
+    var b=ev.target.closest ? ev.target.closest('button') : null;
+    if(b && (b.textContent||'').includes('Post')){ sessionStorage.setItem('jtClickedPost','1'); }
+  });
+})();
+</script>
+
+<script>
+setTimeout(function(){ try{ if(typeof addEditBtn==='function') addEditBtn(); }catch(e){} }, 800);
 </script>
 </body>
 
