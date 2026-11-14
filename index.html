@@ -2419,106 +2419,85 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
 })();
 </script>
 
-<!-- ===== JONOTARIUM FIX v10: REAL Google Login - jonotarium.firebaseapp.com asbe ===== -->
+<!-- ===== FIRESTORE RULES - Firebase Console-e bosate hobe, index.html-e bosale kaj korbe na ===== -->
+<!-- Firebase Console > Firestore Database > Rules tab > nicher rules paste kore Publish korun -->
+<!-- rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { match /posts/{postId} { allow read: if true; allow create: if request.auth != null; allow update, delete: if request.auth != null && (request.auth.uid == resource.data.uid || request.auth.uid == resource.data.authorId); } match /users/{userId} { allow read: if true; allow write: if request.auth != null && request.auth.uid == userId; } match /profiles/{userId} { allow read: if true; allow write: if request.auth != null && request.auth.uid == userId; } } } -->
+<!-- Pura rules file: firestore.rules (ZIP-er vetore) -->
+
+<!-- ===== STEP-1 HEADER FIX v11: Name 1 line + +Post 1 line + Logout kata jabe na ===== -->
+<style id="jt-step1-css">
+  /* Header er 2nd row - Post / Profile / Logout - ek line-e, wrap hobe na */
+  header > div:nth-child(2){ display:flex !important; flex-wrap:nowrap !important; align-items:center !important; gap:8px !important; overflow-x:auto !important; overflow-y:hidden !important; white-space:nowrap !important; -webkit-overflow-scrolling:touch !important; scrollbar-width:none !important; }
+  header > div:nth-child(2)::-webkit-scrollbar{ display:none !important; }
+  header button{ white-space:nowrap !important; flex-shrink:0 !important; }
+  /* +Post button - 1 line, chapa khabe na */
+  header button{ min-width:max-content !important; }
+  /* Profile chip - 1 line */
+  #jt-header-profile, #jt-real-header{ flex-shrink:0 !important; white-space:nowrap !important; display:inline-flex !important; align-items:center !important; gap:8px !important; }
+  #jt-header-profile .jt-h-name, #jt-h-name-text{ white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:120px !important; display:inline-block !important; }
+  /* Logout - 1 line, kata jabe na */
+  header button:last-child{ flex-shrink:0 !important; }
+  @media (max-width:480px){
+    header > div:nth-child(2){ padding-left:10px !important; padding-right:10px !important; }
+    #jt-header-profile .jt-h-name, #jt-h-name-text{ max-width:90px !important; }
+  }
+</style>
 <script>
 (function(){
-  var CFG = {apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU", authDomain:"jonotarium.firebaseapp.com", projectId:"jonotarium", storageBucket:"jonotarium.firebasestorage.app", messagingSenderId:"732610926365", appId:"1:732610926365:web:d57cc65063e03ede0433f4", measurementId:"G-9L0TTKQP9B"};
-  function ensureApp(){
-    try{
-      if(!window.firebase) return false;
-      if(!window.firebase.apps || !window.firebase.apps.length) window.firebase.initializeApp(CFG);
-      return true;
-    }catch(e){ return false; }
+  function titleCase(n){
+    if(!n) return n;
+    return n.split(' ').map(function(w){
+      if(!w) return w;
+      // Already capital thakle thak, lowercase thakle capital koro: sayed -> Sayed, abu -> Abu
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(' ');
   }
-  function saveRealUser(u){
-    try{
-      var d = {name: u.displayName||"", photo: u.photoURL||"", email: u.email||"", uid: u.uid||"", displayName: u.displayName||"", photoURL: u.photoURL||""};
-      localStorage.setItem("jonotarium_user", JSON.stringify(d));
-      localStorage.setItem("jonotarium_current_user", JSON.stringify(d));
-      localStorage.setItem("jonotarium_uid", d.uid);
-      localStorage.setItem("jonotarium_real_google", "1");
-      // Jonotarium profile-e Google naam auto copy korbo NA - profile alada thakbe (v9)
-    }catch(e){}
-  }
-  function doRealGoogleLogin(){
-    if(!ensureApp()){
-      alert("Google Login load hochhe, 2 second por abar try korun");
-      return;
-    }
-    var auth = window.firebase.auth();
-    var provider = new window.firebase.auth.GoogleAuthProvider();
-    // Google-ke bolbo account list dekhate - jor noy, Google er normal niyom
-    // prompt set korbo na - Google auto Choose an account dekhabe jokhon dorkar
-    auth.signInWithPopup(provider).then(function(res){
-      if(res && res.user){ saveRealUser(res.user); window.location.reload(); }
-    }).catch(function(err){
-      // Popup block hole Redirect diye - mobile-e etai valo kaj kore
-      if(err && (err.code==="auth/popup-blocked" || err.code==="auth/popup-closed-by-user" || err.code==="auth/cancelled-popup-request")){
-        auth.signInWithRedirect(provider);
-      } else {
-        alert("Google Login failed: " + (err && err.message ? err.message : err));
+  window.__jtTitleCase = titleCase;
+  function fixStep1(){
+    // Header row ke nowrap
+    var rows = document.querySelectorAll('header > div');
+    rows.forEach(function(r){
+      if(r.innerText && r.innerText.indexOf('Post')>-1 && r.innerText.indexOf('Logout')>-1 || r.innerText && r.innerText.indexOf('+ Post')>-1){
+        r.style.display='flex'; r.style.flexWrap='nowrap'; r.style.alignItems='center'; r.style.gap='8px'; r.style.overflowX='auto'; r.style.whiteSpace='nowrap';
       }
     });
-  }
-  // Redirect theke fire asle user save
-  function handleRedirect(){
-    if(!ensureApp()) return;
-    try{
-      window.firebase.auth().getRedirectResult().then(function(res){
-        if(res && res.user){ saveRealUser(res.user); }
-      }).catch(function(){});
-    }catch(e){}
-  }
-  // Continue with Google button-e click - FAKE login-ke atke REAL login
-  document.addEventListener('click', function(e){
-    var b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if(!b) return;
-    var t = (b.textContent||'').trim();
-    if(t.indexOf('Continue with Google')>-1){
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-      doRealGoogleLogin();
+    // +Post button
+    document.querySelectorAll('header button').forEach(function(b){
+      var t = (b.textContent||'').replace(/\s+/g,' ').trim();
+      if(t.indexOf('+ Post')>-1 || t==='Post' || t.indexOf('Post')>-1 && t.length<15){
+        b.style.whiteSpace='nowrap'; b.style.flexShrink='0'; b.style.minWidth='max-content';
+      }
+      if(t==='Logout'){ b.style.whiteSpace='nowrap'; b.style.flexShrink='0'; }
+    });
+    // Name 1 line + Title Case: Abu sayed -> Abu Sayed
+    var ne = document.getElementById('jt-h-name-text');
+    if(ne && ne.textContent){
+      var fixed = titleCase(ne.textContent.trim());
+      if(fixed !== ne.textContent) ne.textContent = fixed;
+      ne.style.whiteSpace='nowrap'; ne.style.overflow='hidden'; ne.style.textOverflow='ellipsis'; ne.style.maxWidth='120px'; ne.style.display='inline-block';
     }
-  }, true);
-  // Load-e: real Google user thakle Login button-ke profile-e bodlano
-  function showRealProfileInHeader(){
-    try{
-      var real = localStorage.getItem("jonotarium_real_google")==="1";
-      var u = JSON.parse(localStorage.getItem("jonotarium_user")||"null");
-      if(!real || !u) return;
-      var loginBtn = null;
-      document.querySelectorAll("button").forEach(function(b){ if((b.textContent||"").trim()==="Login") loginBtn=b; });
-      if(!loginBtn) return;
-      // Already Logout thakle kichu korbo na - React nijei user dekhachhe
-      var hasLogout = false;
-      document.querySelectorAll("button").forEach(function(b){ if((b.textContent||"").trim()==="Logout") hasLogout=true; });
-      if(hasLogout) return;
-      var container = loginBtn.parentElement; if(!container) return;
-      var prof = null; try{ prof = JSON.parse(localStorage.getItem("jonotarium_profile")||"{}"); }catch(e){}
-      // Jonotarium profile alada thakle oitai, na thakle Google naam
-      var showName = (prof && prof.name) ? prof.name : (u.displayName || u.name || "Name");
-      var showPhoto = (prof && prof.photo) ? prof.photo : (u.photoURL || u.photo || "");
-      var wrap = document.createElement("span");
-      wrap.id = "jt-real-header";
-      wrap.style.cssText = "display:inline-flex;align-items:center;gap:8px;white-space:nowrap;margin-left:auto;";
-      wrap.innerHTML = '<span style="width:34px;height:34px;border-radius:50%;background:#FFD700;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:900;flex:0 0 34px;">'+(showPhoto?'<img src="'+showPhoto+'" style="width:100%;height:100%;object-fit:cover;">':'<span>'+showName.charAt(0).toUpperCase()+'</span>')+'</span><span style="font-weight:800;font-size:14px;white-space:nowrap;">'+showName+'</span><span style="font-size:13px;">✏️</span>';
-      var logout = document.createElement("button");
-      logout.textContent = "Logout";
-      logout.style.cssText = "border:1px solid #000;border-radius:999px;padding:6px 12px;font-size:12px;background:#fff;cursor:pointer;";
-      logout.onclick = function(){
-        try{ if(window.firebase && window.firebase.auth) window.firebase.auth().signOut(); }catch(e){}
-        try{ localStorage.removeItem("jonotarium_real_google"); localStorage.removeItem("jonotarium_user"); localStorage.removeItem("jonotarium_current_user"); }catch(e){}
-        window.location.reload();
-      };
-      container.insertBefore(wrap, loginBtn);
-      container.insertBefore(logout, loginBtn);
-      loginBtn.style.display = "none";
-    }catch(e){}
+    // Real header (v10) name-o Title Case
+    var rh = document.querySelector('#jt-real-header');
+    if(rh){
+      rh.style.whiteSpace='nowrap';
+      rh.querySelectorAll('span').forEach(function(s){
+        var txt = (s.textContent||'').trim();
+        if(txt && txt.length>1 && txt.length<40 && txt!=='✏️' && !s.querySelector('img')){
+          // Name span - jodi 2 shobdo hoy
+          if(txt.indexOf(' ') > -1){ var f = titleCase(txt); if(f!==txt) s.textContent = f; }
+        }
+      });
+    }
+    // Google User lekha thakle - profile name diye bodlano (v7-er sathe)
+    // Post card-eo Google User thakle profile name
   }
-  document.addEventListener("DOMContentLoaded", function(){ handleRedirect(); showRealProfileInHeader(); setInterval(showRealProfileInHeader, 1000); });
-  handleRedirect();
+  setInterval(fixStep1, 800);
+  document.addEventListener('DOMContentLoaded', fixStep1);
+  fixStep1();
 })();
 </script>
 </body>
+
 
 
 
