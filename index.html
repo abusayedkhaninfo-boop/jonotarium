@@ -2242,36 +2242,86 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
 <script>(function(){function renderPrev(){var el=document.getElementById("jt-pf-prev");if(!el)return;try{var arr=JSON.parse(localStorage.getItem("jonotarium_prev_photos")||"[]");if(arr.length){el.innerHTML="";arr.slice(-6).forEach(function(u){var im=document.createElement("img");im.src=u;im.style.cssText="width:48px;height:48px;border-radius:50%;object-fit:cover;cursor:pointer;margin:2px";im.onclick=function(){var pv=document.getElementById("jt-pf-preview");if(pv){pv.src=u;pv.style.display="block"}};el.appendChild(im)})}else{el.textContent="No previous photos yet."}}catch(e){}}setInterval(renderPrev,2000);var save=document.getElementById("jt-pf-save");if(save){save.addEventListener("click",function(){try{var pv=document.getElementById("jt-pf-preview");if(pv&&pv.src&&pv.src.indexOf("data:")!==0&&pv.src.indexOf("http")===0){var arr=JSON.parse(localStorage.getItem("jonotarium_prev_photos")||"[]");if(arr.indexOf(pv.src)<0){arr.push(pv.src);localStorage.setItem("jonotarium_prev_photos",JSON.stringify(arr))}}}catch(e){}})}var rm=document.getElementById("jt-pf-remove");if(rm){rm.addEventListener("click",function(e){e.preventDefault();try{var p=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}");p.photo="";localStorage.setItem("jonotarium_profile",JSON.stringify(p));var pv=document.getElementById("jt-pf-preview");if(pv)pv.style.display="none"}catch(e){}})} })();</script>
 <style id="jt-no-extra-pencil">.jt-profile-edit{display:none!important;visibility:hidden!important}button.jt-profile-edit{display:none!important}</style>
 
-<!-- ===== PROFILE FIX v6: উপরের কার্ড তুলে দিলাম, Post এর পাশে Google User এর জায়গায় হলুদ আইকন + Name + কলম ===== -->
-<style id="jt-header-profile-css">
-  #jt-header-profile{ display:inline-flex !important; align-items:center !important; gap:8px !important; }
-  #jt-header-profile .jt-h-ava{ position:relative; width:34px; height:34px; flex:0 0 34px; cursor:pointer; }
-  #jt-header-profile .jt-h-ava .jt-h-img{ width:34px; height:34px; border-radius:50%; object-fit:cover; background:#FFD700; border:2px solid #FFD700; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; color:#000; overflow:hidden; }
-  #jt-header-profile .jt-h-ava .jt-h-img img{ width:100%; height:100%; object-fit:cover; display:block; }
-  #jt-header-profile .jt-h-ava .jt-h-pencil{ position:absolute; right:-3px; bottom:-3px; width:18px; height:18px; border-radius:50%; background:#FFD700; border:1.5px solid #fff; display:flex; align-items:center; justify-content:center; font-size:10px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
-  #jt-header-profile .jt-h-name{ font-weight:800; font-size:14px; color:#000; display:flex; align-items:center; gap:4px; cursor:pointer; }
-  #jt-header-profile .jt-h-name .jt-h-pencil2{ font-size:13px; cursor:pointer; }
-  #jt-profile-file-hidden{ display:none; }
+<!-- ===== JONOTARIUM FIX ALL v7: Header 1-line + FB single card + YT Shorts 9:16 no-crop + Post author + Persistence ===== -->
+<style id="jt-fixall-css">
+  /* Step-1: Header - +Post 1 line, Name 1 line, Logout not cut */
+  header .max-w-\[1280px\] { flex-wrap: nowrap !important; }
+  header button { white-space: nowrap !important; }
+  #jt-header-profile .jt-h-name, #jt-header-profile span { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+  /* YT Shorts: 9:16, no crop */
+  .jt-shorts-box { max-width: 340px !important; margin: 0 auto !important; aspect-ratio: 9/16 !important; }
+  .jt-shorts-box iframe { width: 100% !important; height: 100% !important; object-fit: contain !important; aspect-ratio: 9/16 !important; }
+  /* FB: single card, no double embed */
+  .jt-fb-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 16px; text-align: center; margin: 8px 0; }
+  .jt-fb-card a { display: inline-block; background: #1877F2; color: #fff !important; padding: 11px 18px; border-radius: 999px; font-weight: 800; text-decoration: none; margin-top: 10px; }
+  .jt-fb-card p { margin: 0; font-size: 14px; color: #333; }
 </style>
 <script>
 (function(){
+  // ---- English alerts: Bengali photo-saved alert -> English ----
+  var _alert = window.alert;
+  window.alert = function(m){
+    if(typeof m === "string" && m.indexOf("ছবি")>-1) m = "Photo saved successfully";
+    return _alert(m);
+  };
   function getProfile(){
     var p={}; try{ p=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}"); }catch(e){}
     var u=null; try{ u=JSON.parse(localStorage.getItem("jonotarium_user")||localStorage.getItem("jonotarium_current_user")||"null"); }catch(e){}
-    var name = p.name || (u && (u.name||u.displayName)) || (u && u.email ? u.email.split("@")[0] : "") || "";
+    var name = p.name || (u && (u.name||u.displayName)) || "";
+    if(name==="Sayed") name="Name";
+    if(name==="Google User" && p.name) name=p.name;
     var photo = p.photo || (u && (u.photo||u.photoURL)) || "";
-    return {name:name, photo:photo};
+    return {name:name, photo:photo, rawName:(u&&u.name)||""};
   }
-  function openEdit(){
-    var m=document.getElementById("jt-profile-modal");
-    if(m){ m.style.display="flex"; return; }
-    // Modal না থাকলে নাম জিজ্ঞেস করো + ছবি বাছো
-    var cur=getProfile().name||"";
-    var nv=prompt("আপনার Name লিখুন", cur);
-    if(nv && nv.trim()){
-      var p={}; try{ p=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}"); }catch(e){}
-      p.name=nv.trim(); try{ localStorage.setItem("jonotarium_profile", JSON.stringify(p)); }catch(e){}
+  function saveProfile(p){
+    try{ var cur={}; try{ cur=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}"); }catch(e){} Object.assign(cur,p); localStorage.setItem("jonotarium_profile", JSON.stringify(cur)); }catch(e){}
+  }
+  // ---- Header: Post | yellow avatar + Name + pencil | Logout  (1 line each) ----
+  function fixHeader(){
+    var old=document.getElementById("jt-profile-bar"); if(old) old.remove();
+    document.querySelectorAll("body *").forEach(function(el){
+      if(el.children.length===0 && el.textContent && el.textContent.trim()==="Jonotarium Profile"){ el.remove(); }
+    });
+    var logoutBtn=null;
+    document.querySelectorAll("button").forEach(function(b){ if((b.textContent||"").trim()==="Logout") logoutBtn=b; });
+    if(!logoutBtn) return;
+    var container=logoutBtn.parentElement; if(!container) return;
+    container.style.whiteSpace="nowrap"; container.style.flexWrap="nowrap";
+    var prof=getProfile();
+    var chip=document.getElementById("jt-header-profile");
+    if(chip && chip.parentElement===container){
+      var ne=document.getElementById("jt-h-name-text"); if(ne) ne.textContent=prof.name||"Name";
+      var av=document.getElementById("jt-h-avatar"); if(av){ if(prof.photo) av.innerHTML='<img src="'+prof.photo+'">'; else av.innerHTML='<span>'+((prof.name||"N").charAt(0).toUpperCase())+'</span>'; }
+      return;
     }
+    // Find old name span (Google User / Sayed) in same row
+    var nameSpan=null;
+    container.querySelectorAll("span").forEach(function(s){ if(!nameSpan && s.textContent && s.textContent.trim().length>0 && s.textContent.trim().length<40) nameSpan=s; });
+    var displayName = prof.name || (nameSpan ? nameSpan.textContent.trim() : "") || "Name";
+    if(displayName==="Google User" && prof.name) displayName=prof.name;
+    if(displayName==="Sayed") displayName="Name";
+    var chip2=document.createElement("span"); chip2.id="jt-header-profile";
+    chip2.style.cssText="display:inline-flex;align-items:center;gap:8px;white-space:nowrap";
+    chip2.innerHTML='<span class="jt-h-ava" style="position:relative;width:34px;height:34px;flex:0 0 34px;cursor:pointer"><span class="jt-h-img" id="jt-h-avatar" style="width:34px;height:34px;border-radius:50%;background:#FFD700;border:2px solid #FFD700;display:flex;align-items:center;justify-content:center;font-weight:900;overflow:hidden"></span><span style="position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:#FFD700;border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px">✏️</span></span><span class="jt-h-name" style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:4px;white-space:nowrap"><span id="jt-h-name-text"></span><span style="font-size:13px;cursor:pointer">✏️</span></span>';
+    if(nameSpan){ container.insertBefore(chip2, nameSpan); nameSpan.style.display="none"; } else { container.insertBefore(chip2, logoutBtn); }
+    document.getElementById("jt-h-name-text").textContent=displayName;
+    var av2=document.getElementById("jt-h-avatar");
+    if(prof.photo) av2.innerHTML='<img src="'+prof.photo+'" style="width:100%;height:100%;object-fit:cover">';
+    else av2.innerHTML='<span>'+((displayName||"N").charAt(0).toUpperCase())+'</span>';
+    chip2.querySelector(".jt-h-ava").onclick=function(){ pickPhoto(); };
+    chip2.querySelector(".jt-h-name").onclick=function(){
+      var m=document.getElementById("jt-profile-modal"); if(m){ m.style.display="flex"; return; }
+      var nv=prompt("Enter your Name", displayName==="Name"?"":displayName);
+      if(nv && nv.trim()){ saveProfile({name:nv.trim()}); }
+    };
+    // +Post button 1 line
+    document.querySelectorAll("header button").forEach(function(b){
+      if((b.textContent||"").replace(/\s+/g," ").trim()==="+ Post" || (b.textContent||"").indexOf("Post")>-1 && b.textContent.length<20){
+        b.style.whiteSpace="nowrap"; b.style.flexShrink="0";
+      }
+    });
+    // Logout not cut: allow header row scroll if needed
+    var hdrRow=container.closest("div"); if(hdrRow){ hdrRow.style.overflowX="auto"; }
   }
   function pickPhoto(){
     var inp=document.getElementById("jt-profile-file-hidden");
@@ -2279,67 +2329,212 @@ try{ var cfg={apiKey:"AIzaSyC_wAvwLVM4QbKpfg6kSW6ZjuqWSJGhazU",authDomain:"jonot
       inp.addEventListener("change", function(){
         var f=inp.files && inp.files[0]; if(!f) return;
         var r=new FileReader();
-        r.onload=function(){
-          var img=new Image();
-          img.onload=function(){
-            var max=600, w=img.width, h=img.height, sc=Math.min(1, max/Math.max(w,h));
-            var c=document.createElement("canvas"); c.width=Math.round(w*sc); c.height=Math.round(h*sc);
-            c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-            var data=c.toDataURL("image/jpeg",0.82);
-            var p={}; try{ p=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}"); }catch(e){}
-            p.photo=data; try{ localStorage.setItem("jonotarium_profile", JSON.stringify(p)); }catch(e){}
-            alert("✅ ছবি সেভ হয়ে গেছে");
-          };
-          img.src=r.result;
-        };
-        r.readAsDataURL(f);
+        r.onload=function(){ var img=new Image(); img.onload=function(){ var max=600,w=img.width,h=img.height,sc=Math.min(1,max/Math.max(w,h)); var c=document.createElement("canvas"); c.width=Math.round(w*sc); c.height=Math.round(h*sc); c.getContext("2d").drawImage(img,0,0,c.width,c.height); var data=c.toDataURL("image/jpeg",0.82); saveProfile({photo:data}); alert("Photo saved successfully"); }; img.src=r.result; }; r.readAsDataURL(f);
       });
     }
     inp.click();
   }
-  function fixHeader(){
-    // উপরের পুরনো কার্ড থাকলে মুছে দাও (Sayed + Jonotarium Profile)
-    var old=document.getElementById("jt-profile-bar"); if(old) old.remove();
-    document.querySelectorAll("body *").forEach(function(el){
-      if(el.children.length===0 && el.textContent && el.textContent.trim()==="Jonotarium Profile"){ var p=el.closest("div"); if(p && p.id!=="jt-header-profile") el.remove(); }
+  // ---- Facebook: 1 card only, NO double embed, NO Unavailable box ----
+  function fixFB(){
+    document.querySelectorAll("iframe").forEach(function(f){
+      var s=f.src||"";
+      if(s.indexOf("facebook.com/plugins")<0) return;
+      var wrap=f.closest("div"); if(!wrap) return;
+      if(wrap.querySelector(".jt-fb-card")){ f.style.display="none"; return; }
+      // Get original FB link
+      var href=""; try{ var m=s.match(/href=([^&]+)/); if(m) href=decodeURIComponent(m[1]); }catch(e){}
+      if(!href) href="https://www.facebook.com";
+      // Hide the failing iframe, show 1 clean card
+      f.style.display="none";
+      var card=document.createElement("div"); card.className="jt-fb-card";
+      card.innerHTML='<p>Facebook Video</p><p style="color:#666;font-size:13px">Facebook does not allow its videos to play inside other sites.</p><a href="'+href+'" target="_blank" rel="noopener">Watch on Facebook</a>';
+      wrap.appendChild(card);
     });
-    // Logout বাটন খুঁজো - ওইটাই লগইন করা ইউজারের জায়গা (Post এর পাশে)
-    var logoutBtn=null;
-    document.querySelectorAll("button").forEach(function(b){ if((b.textContent||"").trim()==="Logout") logoutBtn=b; });
-    if(!logoutBtn) return;
-    var container=logoutBtn.parentElement; if(!container) return;
-    // আগের আমাদের চিপ থাকলে শুধু নাম/ছবি আপডেট করো
-    var prof=getProfile();
-    var chip=document.getElementById("jt-header-profile");
-    if(chip && chip.parentElement===container){
-      var nameEl=document.getElementById("jt-h-name-text"); if(nameEl) nameEl.textContent=prof.name||"Name";
-      var av=document.getElementById("jt-h-avatar"); if(av){ if(prof.photo) av.innerHTML='<img src="'+prof.photo+'" alt="">'; else av.innerHTML='<span>'+((prof.name||"N").charAt(0).toUpperCase())+'</span>'; }
-      return;
-    }
-    // পুরনো "Google User" / নামের span টা খুঁজো - ওইটাই বদলাবো
-    var nameSpan=null;
-    container.querySelectorAll("span").forEach(function(s){ if(s.id==="jt-h-name-text") return; if(!nameSpan && (s.textContent||"").trim().length>0 && (s.textContent||"").trim().length<40) nameSpan=s; });
-    var displayName = prof.name || (nameSpan ? nameSpan.textContent.trim() : "") || "Name";
-    // Sayed হলে Name
-    if(displayName==="Sayed") displayName="Name";
-    var chip2=document.createElement("span"); chip2.id="jt-header-profile";
-    chip2.innerHTML='<span class="jt-h-ava"><span class="jt-h-img" id="jt-h-avatar"></span><span class="jt-h-pencil">✏️</span></span><span class="jt-h-name"><span id="jt-h-name-text"></span><span class="jt-h-pencil2">✏️</span></span>';
-    // নামের span এর জায়গায় চিপ বসাও, Logout বাটনটা রাখো
-    if(nameSpan){ container.insertBefore(chip2, nameSpan); nameSpan.style.display="none"; }
-    else { container.insertBefore(chip2, logoutBtn); }
-    document.getElementById("jt-h-name-text").textContent=displayName;
-    var av2=document.getElementById("jt-h-avatar");
-    if(prof.photo) av2.innerHTML='<img src="'+prof.photo+'" alt="">'; else av2.innerHTML='<span>'+((displayName||"N").charAt(0).toUpperCase())+'</span>';
-    chip2.querySelector(".jt-h-ava").onclick=pickPhoto;
-    chip2.querySelector(".jt-h-pencil2").onclick=openEdit;
-    chip2.querySelector(".jt-h-name").onclick=openEdit;
+    // Hide any duplicate FB fallback boxes in same post
+    document.querySelectorAll(".jt-fb-fallback").forEach(function(el, i){
+      // keep only first per post container
+      var parent=el.parentElement;
+      if(parent && parent.querySelectorAll(".jt-fb-fallback").length>1 && i>0) el.style.display="none";
+    });
   }
-  setInterval(fixHeader, 800);
-  document.addEventListener("DOMContentLoaded", fixHeader);
-  fixHeader();
+  // ---- YouTube Shorts: 9:16, no crop ----
+  function fixYT(){
+    document.querySelectorAll("iframe").forEach(function(f){
+      var s=f.src||"";
+      if(s.indexOf("youtube")<0 && s.indexOf("youtu")<0) return;
+      var isShort = s.indexOf("/shorts/")>-1 || s.indexOf("shorts")>-1;
+      var box=f.closest("div"); if(!box) return;
+      if(isShort){
+        box.classList.add("jt-shorts-box");
+        box.style.maxWidth="340px"; box.style.margin="0 auto"; box.style.aspectRatio="9/16";
+        f.style.width="100%"; f.style.height="100%"; f.style.objectFit="contain"; f.style.aspectRatio="9/16";
+      } else {
+        // normal YT: 16:9, not cropped
+        f.style.objectFit="contain";
+        if(box.style.aspectRatio==="9 / 16" || box.style.aspectRatio==="9/16"){ box.style.aspectRatio="16/9"; }
+      }
+    });
+    document.querySelectorAll("video").forEach(function(v){ v.style.objectFit="contain"; });
+  }
+  // ---- Post author: Google User -> real Name + photo, persist ----
+  function fixPosts(){
+    var prof=getProfile();
+    document.querySelectorAll("body *").forEach(function(el){
+      if(el.children.length===0 && (el.textContent||"").trim()==="Google User"){
+        if(prof.name) el.textContent=prof.name;
+      }
+    });
+    // Avatar circles with G in post cards -> photo / initial
+    document.querySelectorAll("div").forEach(function(el){
+      if(el.children.length===0 && (el.textContent||"").trim()==="G"){
+        // only if inside a post card (has Bangladesh nearby) - check parent
+        var card=el.closest("div"); if(card && card.innerText && card.innerText.indexOf("Bangladesh")>-1){
+          if(prof.photo){ el.innerHTML='<img src="'+prof.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'; el.style.background="#FFD700"; }
+          else if(prof.name){ el.textContent=prof.name.charAt(0).toUpperCase(); }
+        }
+      }
+    });
+    // Backup visible posts so they survive reload on this device
+    try{
+      var titles=[];
+      document.querySelectorAll("body *").forEach(function(el){ if(el.children.length===0 && el.textContent && el.textContent.trim().length>5 && el.textContent.trim().length<120) titles.push(el.textContent.trim()); });
+      if(titles.length>0) localStorage.setItem("jonotarium_posts_backup", JSON.stringify(titles.slice(0,30)));
+    }catch(e){}
+  }
+  // ---- Persistence: on login, restore profile from localStorage (don't wipe) ----
+  function restoreProfile(){
+    try{
+      var p=JSON.parse(localStorage.getItem("jonotarium_profile")||"{}");
+      var u=JSON.parse(localStorage.getItem("jonotarium_user")||"null");
+      if(u && !p.name && u.name && u.name!=="Google User"){ saveProfile({name:u.name}); }
+      if(u && !p.photo && u.photo){ saveProfile({photo:u.photo}); }
+      // If user is Google User but we have saved profile, keep saved profile (don't overwrite with Google User)
+      if(u && u.name==="Google User" && p.name){ /* keep p */ }
+    }catch(e){}
+  }
+  function run(){ fixHeader(); fixFB(); fixYT(); fixPosts(); restoreProfile(); }
+  setInterval(run, 900);
+  document.addEventListener("DOMContentLoaded", run);
+  run();
+})();
+</script>
+
+<!-- ===== JONOTARIUM FIX v9: Jonotarium Profile alada - Google name/photo noy ===== -->
+<script>
+(function(){
+  // Niyom: Google name/photo = sudhu login er jonno. Jonotarium profile = alada.
+  // Prothombar user chaile nijer naam/chobi bosabe. Naam 3 mash por por, chobi jekono somoy.
+  var THREE_MONTHS = 90*24*60*60*1000;
+  function getUid(){
+    try{ var u = window.firebase && window.firebase.auth && window.firebase.auth().currentUser; if(u && u.uid) return u.uid; }catch(e){}
+    try{ return localStorage.getItem('jonotarium_uid') || 'guest'; }catch(e){ return 'guest'; }
+  }
+  function key(){ return 'jonotarium_profile_' + getUid(); }
+  function load(){ try{ return JSON.parse(localStorage.getItem(key())||'null') || null; }catch(e){ return null; } }
+  function save(d){ try{ localStorage.setItem(key(), JSON.stringify(d)); }catch(e){} try{ localStorage.setItem('jonotarium_profile_current', JSON.stringify(d)); }catch(e){} }
+  function getCustom(){ var d = load(); if(d && (d.name || d.photo)) return d; return null; }
+  window.__jtGetCustomProfile = getCustom;
+  window.__jtSaveCustomProfile = save;
+
+  // --- Header + post-e custom naam/chobi bosano ---
+  function applyCustom(){
+    var c = getCustom(); if(!c) return;
+    try{
+      // Header: pencil er paser naam
+      var btns = document.querySelectorAll('button');
+      btns.forEach(function(b){
+        var t = (b.textContent||'').trim();
+        // Pencil button er vetore naam thakle
+        if(b.querySelector('svg') && t && t.length < 60){
+          // "Name" ba Google naam - custom diye bodlano, kintu Logout / + Post / All e haat dewa noy
+          if(t==='Logout' || t.indexOf('Post')===0 || t==='All') return;
+          var spans = b.querySelectorAll('span,div');
+          if(spans.length){
+            // Prothom text node tai naam
+            spans.forEach(function(s){ if(c.name && (s.textContent||'').trim()===t){ s.textContent = c.name; } });
+          }
+        }
+      });
+      // Header photo: img jodi thake, custom photo bosano
+      if(c.photo){
+        document.querySelectorAll('header img, [class*="header"] img').forEach(function(img){
+          if(img.src && img.src!==c.photo) img.src = c.photo;
+        });
+      }
+    }catch(e){}
+  }
+  setInterval(applyCustom, 1000);
+  new MutationObserver(applyCustom).observe(document.documentElement, {childList:true, subtree:true});
+
+  // --- Edit Modal: pencil-e click korle amader modal ---
+  function openModal(){
+    if(document.getElementById('jt-profile-modal')) return;
+    var c = load() || {};
+    var now = Date.now();
+    var last = c.nameChangedAt || 0;
+    var canChangeName = !c.name || (now - last >= THREE_MONTHS);
+    var remain = c.name ? Math.ceil((THREE_MONTHS - (now-last))/(24*60*60*1000)) : 0;
+    var m = document.createElement('div');
+    m.id = 'jt-profile-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    m.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;padding:20px;font-family:sans-serif;">'
+      + '<h3 style="margin:0 0 6px;font-size:18px;">Edit Profile</h3>'
+      + '<p style="margin:0 0 12px;font-size:12px;color:#666;">Jonotarium profile alada. Google er naam/chobi ekhane bodlabe na.</p>'
+      + '<label style="font-size:13px;">Name</label>'
+      + '<input id="jt-name" value="'+(c.name||'')+'" placeholder="Your Jonotarium Name" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;margin:6px 0 4px;box-sizing:border-box;" '+(canChangeName?'':'disabled')+' />'
+      + (canChangeName ? '<p style="font-size:11px;color:#2e7d32;margin:0 0 8px;">Name change kora jabe.</p>' : '<p style="font-size:11px;color:#c62828;margin:0 0 8px;">Name abar change korte '+remain+' din baki. 3 mash por por change kora jay.</p>')
+      + '<label style="font-size:13px;">Photo</label>'
+      + '<div style="display:flex;gap:10px;align-items:center;margin:6px 0 10px;"><div id="jt-preview" style="width:56px;height:56px;border-radius:50%;background:#FFD700;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;">'+(c.photo?'<img src="'+c.photo+'" style="width:100%;height:100%;object-fit:cover;"/>':'✏️')+'</div>'
+      + '<input id="jt-photo" type="file" accept="image/*" style="font-size:12px;" /></div>'
+      + '<p style="font-size:11px;color:#666;margin:0 0 12px;">Photo jekono somoy change kora jabe.</p>'
+      + '<div style="display:flex;gap:8px;"><button id="jt-cancel" style="flex:1;padding:10px;border:1px solid #ddd;background:#fff;border-radius:10px;">Cancel</button><button id="jt-save" style="flex:1;padding:10px;border:0;background:#111;color:#fff;border-radius:10px;">Save</button></div></div>';
+    document.body.appendChild(m);
+    var newPhoto = c.photo || '';
+    m.querySelector('#jt-photo').addEventListener('change', function(ev){
+      var f = ev.target.files && ev.target.files[0]; if(!f) return;
+      var r = new FileReader(); r.onload = function(){ newPhoto = r.result; m.querySelector('#jt-preview').innerHTML = '<img src="'+newPhoto+'" style="width:100%;height:100%;object-fit:cover;"/>'; }; r.readAsDataURL(f);
+    });
+    m.querySelector('#jt-cancel').onclick = function(){ m.remove(); };
+    m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+    m.querySelector('#jt-save').onclick = function(){
+      var nm = (m.querySelector('#jt-name').value||'').trim();
+      var old = load() || {};
+      var data = { name: old.name||'', photo: old.photo||'', nameChangedAt: old.nameChangedAt||0 };
+      if(canChangeName && nm){ if(nm!==old.name){ data.name = nm; data.nameChangedAt = Date.now(); } }
+      if(newPhoto) data.photo = newPhoto;
+      if(!data.name){ alert('Please enter Name'); return; }
+      save(data);
+      // Firestore-eo rakhar chesta (thakle)
+      try{
+        var u = window.firebase && window.firebase.auth && window.firebase.auth().currentUser;
+        if(u && window.firebase.firestore){
+          window.firebase.firestore().collection('profiles').doc(u.uid).set({name:data.name, photo:data.photo, nameChangedAt:data.nameChangedAt, updatedAt: Date.now()}, {merge:true});
+        }
+      }catch(e){}
+      m.remove(); applyCustom();
+      alert('Profile saved. Ekhon theke Jonotarium-e apnar ei Name / Photo dekhabe.');
+    };
+  }
+  // Pencil button-e click intercept - React er modal er bodole amader modal
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if(!b) return;
+    var svg = b.querySelector('svg');
+    var t = (b.textContent||'').trim();
+    // Pencil + naam thaka button = profile edit button
+    if(svg && t && t!=='Logout' && t.indexOf('Post')!==0 && t!=='All' && t.length<60){
+      // Sudhu header er pencil - tar parent-e img thakle ba header er vetore thakle
+      var inHeader = b.closest('header') || b.parentElement;
+      if(inHeader){
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        openModal();
+      }
+    }
+  }, true);
 })();
 </script>
 </body>
+
 
 
 
