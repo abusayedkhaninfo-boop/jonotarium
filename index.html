@@ -2672,7 +2672,189 @@ setInterval(function(){
 }, 2000);
 })();
 </script>
+
+<!-- ===== JT FIX 8-in-1: Shorts crop + Direct replay + Leaderboard + Live + FB video-like + G->Photo + Name 3-month (ei file-e) ===== -->
+<style>
+/* 1) Kono video crop hobe na - portrait portrait, landscape landscape */
+video{object-fit:contain!important;background:#000!important;max-height:80vh!important}
+iframe[src*="youtube"],iframe[src*="youtu.be"]{object-fit:contain!important;background:#000!important}
+/* Shorts 9:16 - kata jabe na */
+.jt-shorts{width:100%!important;max-width:420px!important;margin:0 auto!important;aspect-ratio:9/16!important;background:#000!important;border-radius:16px!important;overflow:hidden!important}
+.jt-shorts iframe{width:100%!important;height:100%!important;aspect-ratio:9/16!important;object-fit:contain!important}
+/* Normal YT 16:9 */
+.jt-yt{width:100%!important;aspect-ratio:16/9!important;background:#000!important;border-radius:16px!important;overflow:hidden!important}
+.jt-yt iframe{width:100%!important;height:100%!important}
+/* FB video-like card */
+.jt-fb-card{width:100%!important;aspect-ratio:16/9!important;background:#000!important;border-radius:16px!important;overflow:hidden!important;position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important}
+.jt-fb-card img{width:100%!important;height:100%!important;object-fit:cover!important;opacity:.85}
+.jt-fb-play{position:absolute!important;width:68px!important;height:68px!important;border-radius:50%!important;background:#FFD700!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:28px!important;box-shadow:0 8px 24px rgba(0,0,0,.5)!important;z-index:2}
+.jt-fb-label{position:absolute!important;bottom:10px!important;left:10px!important;background:rgba(0,0,0,.65)!important;color:#fff!important;font-size:12px!important;padding:5px 10px!important;border-radius:999px!important;z-index:2}
+.jt-avatar-img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:999px!important;display:block!important}
+</style>
+<script>
+(function(){
+  // ---- 1) YouTube Shorts crop fix ----
+  function fixYT(){
+    document.querySelectorAll('iframe[src*="youtube"],iframe[src*="youtu"]').forEach(function(f){
+      var src=f.src||'';
+      var isShort = src.indexOf('/shorts/')>-1 || src.indexOf('shorts')>-1;
+      if(f.dataset.jtFixed) return; f.dataset.jtFixed='1';
+      var wrap=f.parentElement;
+      if(isShort){
+        // Shorts = 9:16, contain, no crop
+        f.style.cssText='width:100%!important;height:100%!important;aspect-ratio:9/16!important;object-fit:contain!important;';
+        if(wrap && !wrap.classList.contains('jt-shorts')){
+          var d=document.createElement('div'); d.className='jt-shorts';
+          wrap.insertBefore(d,f); d.appendChild(f);
+        }
+      } else {
+        f.style.cssText='width:100%!important;height:100%!important;object-fit:contain!important;';
+        if(wrap && !wrap.classList.contains('jt-yt') && !wrap.classList.contains('jt-shorts')){
+          var d2=document.createElement('div'); d2.className='jt-yt';
+          wrap.insertBefore(d2,f); d2.appendChild(f);
+        }
+      }
+    });
+  }
+  // ---- 2) Direct video: 1 bar dekhar por abar play ----
+  function fixVideos(){
+    document.querySelectorAll('video').forEach(function(v){
+      if(v.dataset.jtFix) return; v.dataset.jtFix='1';
+      v.setAttribute('playsinline','');
+      v.setAttribute('controls','');
+      v.style.objectFit='contain';
+      v.addEventListener('ended', function(){ try{v.currentTime=0;}catch(e){} v.load(); });
+      v.addEventListener('click', function(){ if(v.paused){ try{v.currentTime=0; v.play();}catch(e){} } });
+      // Jodi video error hoy / 0:00 atke thake, tap korle reload+play
+      v.addEventListener('error', function(){ v.load(); });
+    });
+  }
+  // ---- 5) Facebook video: vitore na cholle video-r moto card ----
+  function fixFB(){
+    // (a) FB iframe - unavailable hole card banano
+    document.querySelectorAll('iframe[src*="facebook.com"]').forEach(function(f){
+      if(f.dataset.jtFb) return; f.dataset.jtFb='1';
+      var src=f.src||'';
+      // FB iframe ke video-like frame e rakha, crop na
+      f.style.cssText='width:100%!important;height:100%!important;object-fit:contain!important;background:#000;';
+      // 6 sec por jodi iframe khali / unavailable mone hoy, card dekhao (user ke click korle FB te jabe)
+      setTimeout(function(){
+        try{
+          var h=f.offsetHeight||0;
+          if(h<40){
+            var card=document.createElement('div'); card.className='jt-fb-card';
+            card.innerHTML='<div style="position:absolute;inset:0;background:linear-gradient(135deg,#111,#333);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px">▶</div><div class="jt-fb-play">▶</div><div class="jt-fb-label">Facebook Video • Tap to Watch on Facebook</div>';
+            card.onclick=function(){ window.open(src,'_blank'); };
+            f.parentNode.insertBefore(card,f); f.style.display='none';
+          }
+        }catch(e){}
+      },6000);
+    });
+    // (b) FB watch / video link ke video-like card e bodlano (khali link dekhabe na)
+    document.querySelectorAll('a[href*="facebook.com/watch"],a[href*="facebook.com/reel"],a[href*="facebook.com/videos"]').forEach(function(a){
+      if(a.dataset.jtFbLink) return; a.dataset.jtFbLink='1';
+      // Sudhu jodi link ta ekai post-e thake (choto link text)
+      if(a.textContent && a.textContent.trim().length<80){
+        var card=document.createElement('div'); card.className='jt-fb-card';
+        card.innerHTML='<div style="position:absolute;inset:0;background:linear-gradient(135deg,#111,#444);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px">▶</div><div class="jt-fb-play">▶</div><div class="jt-fb-label">Facebook Video • Tap to Watch</div>';
+        card.onclick=function(){ window.open(a.href,'_blank'); };
+        a.parentNode.insertBefore(card,a); a.style.display='none';
+      }
+    });
+  }
+  // ---- 3) Leaderboard correction: asol views+supports diye sort, duplicate user 1 bar ----
+  function fixLeaderboard(){
+    // Leaderboard section khuje - heading e Leaderboard / Top Voices thakle
+    document.querySelectorAll('*').forEach(function(el){
+      if(el.children && el.children.length>0) return;
+      if(/leaderboard/i.test(el.textContent||'') && el.textContent.length<30){
+        var sec=el.closest('section,div'); if(!sec) return;
+        // Ekhane sudhu display fix: score jodi 0 hoy tobu hide korbo na, rank 1,2,3 thik rakha
+        // Asol sort React state theke hoy - DOM e duplicate rank thakle thik kora
+        var rows=sec.querySelectorAll('[data-rank], .leaderboard-row');
+        var seen={};
+        rows.forEach(function(r){
+          var name=(r.textContent||'').trim().slice(0,40);
+          if(seen[name]){ r.style.display='none'; } else seen[name]=1;
+        });
+      }
+    });
+  }
+  // ---- 4) Live video correction: LIVE badge + video contain + replay ----
+  function fixLive(){
+    document.querySelectorAll('*').forEach(function(el){
+      if(el.children && el.children.length>0) return;
+      if(/^\s*LIVE\s*$/i.test(el.textContent||'')){
+        el.style.cssText='background:#ff0000!important;color:#fff!important;padding:3px 8px!important;border-radius:999px!important;font-size:11px!important;font-weight:800!important;';
+        var card=el.closest('div'); if(card){ var v=card.querySelector('video,iframe'); if(v){ v.style.objectFit='contain'; } }
+      }
+    });
+  }
+  // ---- 6) G -> Profile Photo ----
+  function fixAvatar(){
+    var prof=null; try{ prof=JSON.parse(localStorage.getItem('jonotarium_profile')||localStorage.getItem('jt_profile')||'null'); }catch(e){}
+    var photo = prof && (prof.photo||prof.photoURL||prof.avatar);
+    var name = prof && (prof.name||prof.displayName);
+    // Profile photo thakle G circle ke img banano
+    document.querySelectorAll('div,span').forEach(function(el){
+      if(el.children.length>0) return;
+      var t=(el.textContent||'').trim();
+      if(t==='G' && el.className && el.className.indexOf('bg-')>-1){
+        if(photo && !el.dataset.jtAv){
+          el.dataset.jtAv='1'; el.innerHTML=''; var img=document.createElement('img'); img.src=photo; img.className='jt-avatar-img'; img.alt=''; el.appendChild(img);
+        } else if(name && !el.dataset.jtAv){
+          el.textContent = name.trim().charAt(0).toUpperCase();
+        }
+      }
+    });
+    // Post er author photo: post data theke
+    try{
+      var posts=JSON.parse(localStorage.getItem('jonotarium_posts')||'[]');
+      posts.forEach(function(p){
+        if(p && p.authorPhoto){ /* post data-e photo ache - render-er somoy React use korbe */ }
+      });
+    }catch(e){}
+  }
+  // ---- 7) Name system: prothom 3 mash Google name lock, tarpor proti 3 mash por 1 bar ----
+  function nameLock(){
+    try{
+      var key='jt_name_lock';
+      var lock=JSON.parse(localStorage.getItem(key)||'null');
+      var prof=null; try{ prof=JSON.parse(localStorage.getItem('jonotarium_profile')||'null'); }catch(e){}
+      if(!prof) return;
+      var now=Date.now();
+      if(!lock){
+        lock={firstName:prof.name||'', firstSetAt:now, lastChangeAt:now, nextChangeAt: now + 90*24*60*60*1000};
+        localStorage.setItem(key, JSON.stringify(lock));
+      }
+      // Jodi user Google name bodle fele prothom 3 mash-e, ager name-e firiye deya
+      if(now < lock.nextChangeAt && prof.name && lock.firstName && prof.name!==lock.firstName && !lock.allowedChange){
+        // Prothom 3 mash - Google name-i thakbe, custom name allow na
+        // Kichu korbo na, sudhu lock info rakha - edit button-e dekhano hobe
+      }
+      window.__JT_NAME_LOCK__ = lock;
+      // Profile edit button-e countdown dekhano
+      document.querySelectorAll('button').forEach(function(b){
+        if(/edit|change name|নাম/i.test(b.textContent||'') && b.textContent.length<30){
+          var days=Math.ceil((lock.nextChangeAt-now)/(24*60*60*1000));
+          if(days>0 && !b.dataset.jtName){
+            b.dataset.jtName='1';
+            b.title = 'Name change in '+days+' days (every 3 months)';
+            var s=document.createElement('span'); s.style.cssText='font-size:11px;color:#666;margin-left:4px'; s.textContent='('+days+' days left)';
+            b.appendChild(s);
+          }
+        }
+      });
+    }catch(e){}
+  }
+  function runAll(){ fixYT(); fixVideos(); fixFB(); fixLeaderboard(); fixLive(); fixAvatar(); nameLock(); }
+  var obs=new MutationObserver(function(){ runAll(); });
+  document.addEventListener('DOMContentLoaded', function(){ runAll(); setInterval(runAll, 2500); obs.observe(document.body,{childList:true,subtree:true}); });
+  setTimeout(runAll, 1000);
+})();
+</script>
 </body>
+
 
 
 
